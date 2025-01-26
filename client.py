@@ -2,7 +2,6 @@
 import socket
 import struct
 import random
-import time
 
 def unreliableSend(packet, sock, userIP, errRate):
     if errRate < random.randint(0, 100):
@@ -13,7 +12,7 @@ def create_packet(packet_type, seq_num=0, payload=b""):
 
 def client(server_ip, server_port, filename, err_rate):
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    client_socket.settimeout(10)
+    client_socket.settimeout(2)
 
     # Triple Handshake
     def initiate_handshake():
@@ -81,5 +80,7 @@ def client(server_ip, server_port, filename, err_rate):
     client_socket.close()
 
 if __name__ == "__main__":
-    import sys
-    client("localhost", 12345, "testfile.txt", 20)
+    while True:
+        fileName = input("Enter the file name: ")
+        errorRate = int(input("Enter the error rate: "))
+        client("localhost", 12345, fileName, errorRate)
