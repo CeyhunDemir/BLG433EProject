@@ -3,18 +3,22 @@ import socket
 import struct
 import random
 
+#If a valid error rate is entered by the user, the packet is sent with the error rate via UDP protocol.
 def unreliableSend(packet, sock, userIP, errRate):
     if errRate < random.randint(0, 100):
         sock.sendto(packet, userIP)
-
+        
+#The packet is created with the given packet type, sequence number and payload. First two bytes are the packet type and sequence number, the rest is the payload.
 def create_packet(packet_type, seq_num=0, payload=b""):
     return struct.pack("!BB", packet_type, seq_num) + payload
 
+#Create a client socket and send the handshake packet to the server. If the handshake is successful, the client receives the data packets and sends the ACK packets to the server.
 def client(server_ip, server_port, filename, err_rate):
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    # Set timeout for the client socket (In case of no return to the client)
     client_socket.settimeout(2)
 
-    # Triple Handshake
+    # Triple Handshake, it terminates the socket if the handshake is not successful
     def initiate_handshake():
         handshake_packet = create_packet(0, 0, filename.encode())
         unreliableSend(handshake_packet, client_socket, (server_ip, server_port), 0)
@@ -38,6 +42,7 @@ def client(server_ip, server_port, filename, err_rate):
     # Receiving data using Selective Repeat
     received_packets = {}
     expected_seq_num = 0
+    #Until break is used it listens for the packets from the server. If the packet is a data packet, it sends an ACK packet to the server. If the packet is a FIN packet, it sends a FIN ACK and FIN packet to the server.
     while True:
         try:
             data, _ = client_socket.recvfrom(1024)
@@ -56,7 +61,7 @@ def client(server_ip, server_port, filename, err_rate):
             if packet_type == 3:
                 print("Received FIN packet")
                 fin_ack = create_packet(1, seq_num + 1)
-                fin_packet = create_packet(1, seq_num + 2)
+                fin_packet = create_packet(3, seq_num + 2)
                 print("Sending FIN ACK and FIN packet to server")
                 unreliableSend(fin_ack, client_socket, (server_ip, server_port), err_rate)
                 try:
